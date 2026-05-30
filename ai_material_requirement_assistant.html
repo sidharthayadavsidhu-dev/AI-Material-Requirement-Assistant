@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Material Requirement Assistant</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --fm:'IBM Plex Mono',monospace;--fb:'Barlow',sans-serif;
+  --c-text:#0F1923;--c-bg:#F4F1EB;--c-surface:#FFFFFF;--c-surface2:#F0EDE6;
+  --c-border:rgba(0,0,0,0.14);--c-border2:rgba(0,0,0,0.24);
+  --c-muted:#7A7268;--c-danger:#C0392B;--c-danger-lt:#FDECEA;
+  --br:6px;--br-lg:10px
+}
+@media(prefers-color-scheme:dark){
+  :root{
+    --c-text:#F0ECE6;--c-bg:#0F1014;--c-surface:#1A1D22;--c-surface2:#222630;
+    --c-border:rgba(255,255,255,0.1);--c-border2:rgba(255,255,255,0.2);
+    --c-muted:#8A8278
+  }
+}
+body{font-family:var(--fb);background:var(--c-bg);min-height:100vh;display:flex;justify-content:center;padding:2rem 1rem;color:var(--c-text)}
+#app{width:100%;max-width:760px}
+.top-bar{display:flex;align-items:center;gap:12px;margin-bottom:1.5rem;padding-bottom:1rem;border-bottom:1px solid var(--c-border)}
+.logo-mark{width:42px;height:42px;background:var(--c-text);border-radius:var(--br);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.logo-mark i{color:var(--c-bg);font-size:22px}
+.top-bar-text h1{font-family:var(--fm);font-size:16px;font-weight:600;color:var(--c-text);letter-spacing:-0.3px}
+.top-bar-text p{font-size:12px;color:var(--c-muted);margin-top:2px}
+.api-row{background:var(--c-surface);border:0.5px solid var(--c-border);border-radius:var(--br-lg);padding:12px 16px;margin-bottom:1rem}
+.api-row label{font-family:var(--fm);font-size:10px;font-weight:500;color:var(--c-muted);letter-spacing:0.5px;display:block;margin-bottom:6px}
+.api-row input{width:100%;height:36px;border:0.5px solid var(--c-border2);border-radius:var(--br);padding:0 12px;font-family:monospace;font-size:13px;background:var(--c-surface2);color:var(--c-text)}
+.api-row input:focus{outline:none;border-color:var(--c-text)}
+.api-note{font-size:11px;color:var(--c-muted);margin-top:6px}
+.api-note a{color:#D4820A;text-decoration:none}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+@media(max-width:500px){.form-grid{grid-template-columns:1fr}}
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-family:var(--fm);font-size:10px;font-weight:500;color:var(--c-muted);letter-spacing:0.5px}
+.field select,.field input,.field textarea{background:var(--c-surface);border:0.5px solid var(--c-border2);border-radius:var(--br);padding:0 10px;height:36px;font-family:var(--fb);font-size:13px;color:var(--c-text);width:100%}
+.field textarea{height:64px;padding:8px 10px;resize:vertical}
+.field select:focus,.field input:focus,.field textarea:focus{outline:none;border-color:var(--c-text)}
+.dim-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px}
+@media(max-width:500px){.dim-row{grid-template-columns:1fr 1fr}}
+.generate-btn{width:100%;height:42px;background:var(--c-text);color:var(--c-bg);border:none;border-radius:var(--br);font-family:var(--fm);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;letter-spacing:0.3px;transition:opacity .15s}
+.generate-btn:hover{opacity:.85}
+.generate-btn:disabled{opacity:.4;cursor:not-allowed}
+.loading-state{text-align:center;padding:2.5rem 1rem;background:var(--c-surface);border-radius:var(--br-lg);border:0.5px solid var(--c-border);margin-top:1rem}
+.loading-state .dots{display:flex;justify-content:center;gap:6px;margin-bottom:12px}
+.loading-state .dot{width:10px;height:10px;border-radius:50%;background:var(--c-text);animation:pulse 1s ease-in-out infinite}
+.loading-state .dot:nth-child(2){animation-delay:.15s}
+.loading-state .dot:nth-child(3){animation-delay:.3s}
+@keyframes pulse{0%,80%,100%{transform:scale(0.6);opacity:.4}40%{transform:scale(1);opacity:1}}
+.loading-state p{font-size:13px;color:var(--c-muted);font-family:var(--fm)}
+.result-wrap{margin-top:1.5rem}
+.result-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1rem;gap:8px;flex-wrap:wrap}
+.result-title{font-family:var(--fm);font-size:15px;font-weight:600;color:var(--c-text)}
+.result-sub{font-size:12px;color:var(--c-muted);margin-top:2px}
+.reset-btn{font-size:11px;color:var(--c-muted);background:none;border:0.5px solid var(--c-border);border-radius:var(--br);padding:6px 12px;cursor:pointer;font-family:var(--fm);display:flex;align-items:center;gap:5px;white-space:nowrap}
+.reset-btn:hover{color:var(--c-text);border-color:var(--c-border2)}
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px;margin-bottom:1rem}
+.stat-card{background:var(--c-surface2);border-radius:var(--br);padding:10px 12px}
+.stat-label{font-family:var(--fm);font-size:10px;color:var(--c-muted);letter-spacing:0.5px}
+.stat-val{font-family:var(--fm);font-size:22px;font-weight:600;color:var(--c-text);margin-top:2px}
+.stat-unit{font-size:10px;color:var(--c-muted)}
+.assumptions-box{background:var(--c-surface2);border-radius:var(--br);padding:10px 14px;margin-bottom:12px;display:flex;gap:8px;align-items:flex-start}
+.assumptions-box ul{list-style:none;display:flex;flex-direction:column;gap:2px;margin-top:4px}
+.assumptions-box li{font-size:12px;color:var(--c-muted)}
+.category-block{background:var(--c-surface);border:0.5px solid var(--c-border);border-radius:var(--br-lg);overflow:hidden;margin-bottom:8px}
+.cat-header{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:0.5px solid var(--c-border);cursor:pointer;user-select:none}
+.cat-header:hover{background:var(--c-surface2)}
+.cat-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+.cat-name{font-family:var(--fm);font-size:13px;font-weight:500;color:var(--c-text);flex:1}
+.cat-count{font-family:var(--fm);font-size:11px;color:var(--c-muted)}
+.cat-chev{font-size:14px;color:var(--c-muted);transition:transform .2s}
+.cat-chev.open{transform:rotate(180deg)}
+.mat-table{width:100%;border-collapse:collapse;table-layout:fixed}
+.mat-table th{font-family:var(--fm);font-size:10px;font-weight:500;color:var(--c-muted);letter-spacing:0.5px;padding:8px 14px;text-align:left;background:var(--c-surface2);border-bottom:0.5px solid var(--c-border)}
+.mat-table th:nth-child(1){width:36%}
+.mat-table th:nth-child(2){width:20%;text-align:right}
+.mat-table th:nth-child(3){width:20%;text-align:right}
+.mat-table th:nth-child(4){width:24%;text-align:center}
+.mat-table td{font-size:13px;padding:9px 14px;border-bottom:0.5px solid var(--c-border);vertical-align:top;color:var(--c-text)}
+.mat-table td:nth-child(2){text-align:right;font-family:var(--fm);font-size:12px}
+.mat-table td:nth-child(3){text-align:right;font-family:var(--fm);font-size:12px;color:var(--c-muted)}
+.mat-table td:nth-child(4){text-align:center}
+.mat-table tr:last-child td{border-bottom:none}
+.mat-table tr:hover td{background:var(--c-surface2)}
+.priority-pill{display:inline-block;font-family:var(--fm);font-size:10px;font-weight:500;padding:2px 7px;border-radius:3px;letter-spacing:0.3px}
+.p-critical{background:#FCEBEB;color:#791F1F}
+.p-high{background:#FAEEDA;color:#633806}
+.p-standard{background:#EAF3DE;color:#27500A}
+.notes-block{background:var(--c-surface);border:0.5px solid var(--c-border);border-radius:var(--br-lg);padding:12px 14px;margin-top:8px;display:flex;flex-direction:column;gap:8px}
+.note-item{display:flex;gap:8px;align-items:flex-start}
+.note-item i{font-size:15px;color:var(--c-muted);flex-shrink:0;margin-top:1px}
+.note-item p{font-size:12px;color:var(--c-muted);line-height:1.5}
+.note-item p strong{color:var(--c-text)}
+.action-row{display:flex;gap:8px;margin-top:1rem;flex-wrap:wrap}
+.act-btn{flex:1;min-width:120px;height:36px;border:0.5px solid var(--c-border);border-radius:var(--br);background:var(--c-surface);color:var(--c-muted);font-family:var(--fm);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s;letter-spacing:0.3px}
+.act-btn:hover{border-color:var(--c-text);color:var(--c-text)}
+.act-btn i{font-size:14px}
+.err-box{background:var(--c-surface);border:0.5px solid rgba(192,57,43,0.4);border-radius:var(--br);padding:12px 14px;font-size:13px;color:#C0392B;margin-top:10px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:6px;font-family:var(--fm);font-size:10px;color:var(--c-muted)}
+.legend span{display:flex;align-items:center;gap:5px}
+.legend .dot{display:inline-block;width:8px;height:8px;border-radius:2px}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="top-bar">
+    <div class="logo-mark"><i class="ti ti-building-warehouse"></i></div>
+    <div class="top-bar-text">
+      <h1>AI Material Requirement Assistant</h1>
+      <p>AI-powered bill of materials for construction work stages</p>
+    </div>
+  </div>
+
+  <div class="api-row">
+    <label>ANTHROPIC API KEY</label>
+    <input type="password" id="api-key" placeholder="sk-ant-..." oninput="saveKey(this.value)" />
+    <p class="api-note">Stored locally in your browser only. Get a key at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a></p>
+  </div>
+
+  <div id="form-section">
+    <div class="form-grid">
+      <div class="field">
+        <label>WORK STAGE</label>
+        <select id="work-stage" onchange="onStageChange()">
+          <option value="">Select stage...</option>
+          <option value="substructure_foundation">Substructure — Foundation</option>
+          <option value="substructure_basement">Substructure — Basement</option>
+          <option value="superstructure_columns">Superstructure — Columns &amp; Beams</option>
+          <option value="superstructure_slabs">Superstructure — Floor Slabs</option>
+          <option value="superstructure_walls">Superstructure — Masonry Walls</option>
+          <option value="roofing_flat">Roofing — Flat Roof</option>
+          <option value="roofing_pitched">Roofing — Pitched Roof</option>
+          <option value="internal_plastering">Internal — Plastering &amp; Rendering</option>
+          <option value="internal_tiling">Internal — Wall &amp; Floor Tiling</option>
+          <option value="internal_flooring">Internal — Screeding &amp; Flooring</option>
+          <option value="mep_electrical">MEP — Electrical Rough-in</option>
+          <option value="mep_plumbing">MEP — Plumbing &amp; Drainage</option>
+          <option value="external_cladding">External — Cladding &amp; Facade</option>
+          <option value="external_roads">External — Roads &amp; Pavements</option>
+          <option value="custom">Custom work stage...</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>STRUCTURE TYPE</label>
+        <select id="structure-type">
+          <option value="residential_villa">Residential Villa</option>
+          <option value="residential_apartment">Apartment Block</option>
+          <option value="commercial_office">Commercial Office</option>
+          <option value="industrial_warehouse">Industrial / Warehouse</option>
+          <option value="infrastructure_road">Infrastructure / Road</option>
+          <option value="mixed_use">Mixed-Use Development</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="custom-work-wrap" style="display:none;margin-bottom:10px">
+      <div class="field">
+        <label>DESCRIBE WORK STAGE</label>
+        <input type="text" id="custom-work" placeholder="e.g. retaining wall construction, pile cap formwork..." />
+      </div>
+    </div>
+
+    <div class="dim-row">
+      <div class="field">
+        <label>AREA (m²)</label>
+        <input type="number" id="area" placeholder="e.g. 250" min="1" />
+      </div>
+      <div class="field">
+        <label>HEIGHT / DEPTH (m)</label>
+        <input type="number" id="height" placeholder="e.g. 3.2" step="0.1" min="0.1" />
+      </div>
+      <div class="field">
+        <label>NO. OF FLOORS</label>
+        <input type="number" id="floors" placeholder="1" min="1" value="1" />
+      </div>
+    </div>
+
+    <div class="field" style="margin-bottom:10px">
+      <label>ADDITIONAL CONTEXT (optional)</label>
+      <textarea id="context" placeholder="Soil type, concrete grade, brick type, climate zone, IS/BS/ACI standards, special requirements..."></textarea>
+    </div>
+
+    <button class="generate-btn" id="gen-btn" onclick="generate()">
+      <i class="ti ti-calculator"></i>
+      Generate Bill of Materials
+    </button>
+    <div id="err-box"></div>
+  </div>
+
+  <div id="loading-section" style="display:none">
+    <div class="loading-state">
+      <div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+      <p>Calculating material quantities...</p>
+    </div>
+  </div>
+
+  <div id="result-section"></div>
+</div>
+
+<script>
+const SYSTEM = `You are a senior quantity surveyor and construction materials expert. Given a work stage, area dimensions, and structure type, generate a detailed bill of materials (BOM) in JSON format.
+
+Return ONLY valid JSON — no markdown fences, no preamble:
+{
+  "title": "Short title e.g. Foundation Slab — 250m²",
+  "workStage": "human-readable stage name",
+  "structureType": "structure type",
+  "totalArea": 250,
+  "assumptions": ["key assumption 1", "key assumption 2"],
+  "categories": [
+    {
+      "id": "cat_concrete",
+      "name": "Concrete & Aggregates",
+      "colorHex": "#2C3E50",
+      "items": [
+        {
+          "id": "item_001",
+          "material": "Ready-mix concrete C25/30",
+          "spec": "Grade C25/30, 20mm aggregate, w/c ratio 0.5",
+          "quantity": 62.5,
+          "unit": "m³",
+          "wastePercent": 5,
+          "priority": "critical",
+          "note": "Allow 5% wastage for spillage and over-pour"
+        }
+      ]
+    }
+  ],
+  "procurementNotes": "Brief procurement advice",
+  "leadTimeWarning": "Any long-lead items to flag"
+}
+
+Rules:
+- Include 4-6 categories relevant to the work stage
+- Each category: 3-6 items
+- Quantities must be realistic for the given area and structure type, calculated properly
+- wastePercent: 5-15% depending on material and work type
+- priority: "critical" (on critical path), "high" (needed before work starts), "standard"
+- Units: m³, m², m, kg, tonne, nr, lm
+- Include spec details like grade, mix, thickness, standard
+- Return ONLY JSON`;
+
+window.onload = () => {
+  const saved = localStorage.getItem('mat_api_key');
+  if (saved) document.getElementById('api-key').value = saved;
+};
+
+function saveKey(v) { localStorage.setItem('mat_api_key', v); }
+
+function onStageChange() {
+  const stage = document.getElementById('work-stage').value;
+  document.getElementById('custom-work-wrap').style.display = stage === 'custom' ? 'block' : 'none';
+}
+
+function showErr(msg) {
+  const b = document.getElementById('err-box');
+  b.innerHTML = msg ? `<div class="err-box">${msg}</div>` : '';
+}
+
+function setLoading(on) {
+  document.getElementById('loading-section').style.display = on ? 'block' : 'none';
+  document.getElementById('gen-btn').disabled = on;
+  document.getElementById('form-section').style.opacity = on ? '0.5' : '1';
+}
+
+async function generate() {
+  const apiKey = document.getElementById('api-key').value.trim();
+  const stageEl = document.getElementById('work-stage');
+  const stage = stageEl.value;
+  const custom = document.getElementById('custom-work').value.trim();
+  const workStage = stage === 'custom' ? custom : (stageEl.options[stageEl.selectedIndex]?.text || '');
+  const area = document.getElementById('area').value;
+  const height = document.getElementById('height').value;
+  const floors = document.getElementById('floors').value;
+  const context = document.getElementById('context').value.trim();
+  const structure = document.getElementById('structure-type').value;
+
+  if (!apiKey) { showErr('Please enter your Anthropic API key.'); return; }
+  if (!workStage || workStage === 'Select stage...') { showErr('Please select a work stage.'); return; }
+  if (!area) { showErr('Please enter the area in m².'); return; }
+
+  showErr('');
+  setLoading(true);
+  document.getElementById('result-section').innerHTML = '';
+
+  const prompt = `Generate a bill of materials for:
+Work Stage: ${workStage}
+Structure Type: ${structure.replace(/_/g,' ')}
+Floor Area: ${area} m²
+Height/Depth: ${height || 'standard'} m
+Number of floors: ${floors || 1}
+${context ? 'Additional context: ' + context : ''}
+
+Calculate realistic quantities and include relevant materials only.`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 2500,
+        system: SYSTEM,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    const raw = (data.content || []).map(b => b.text || '').join('').trim().replace(/```json|```/g,'').trim();
+    const bom = JSON.parse(raw);
+    window._bom = bom;
+    renderResult(bom);
+  } catch(e) {
+    showErr('Error: ' + (e.message || 'Failed to generate. Check your API key and try again.'));
+  } finally {
+    setLoading(false);
+  }
+}
+
+const CAT_COLORS = ['#2C3E50','#0B6B5A','#854F0B','#3B6D11','#185FA5','#993556','#3C3489','#712B13'];
+
+function renderResult(bom) {
+  const allItems = bom.categories.flatMap(c => c.items);
+  const critical = allItems.filter(i => i.priority === 'critical').length;
+
+  let html = `<div class="result-wrap">
+    <div class="result-top">
+      <div>
+        <div class="result-title">${bom.title}</div>
+        <div class="result-sub">${(bom.structureType||'').replace(/_/g,' ')} &nbsp;&middot;&nbsp; ${bom.totalArea || document.getElementById('area').value} m²</div>
+      </div>
+      <button class="reset-btn" onclick="resetForm()"><i class="ti ti-refresh"></i> New BOM</button>
+    </div>
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-label">CATEGORIES</div><div class="stat-val">${bom.categories.length}</div></div>
+      <div class="stat-card"><div class="stat-label">TOTAL ITEMS</div><div class="stat-val">${allItems.length}</div></div>
+      <div class="stat-card"><div class="stat-label">CRITICAL</div><div class="stat-val" style="color:#C0392B">${critical}</div></div>
+      <div class="stat-card"><div class="stat-label">FLOOR AREA</div><div class="stat-val">${bom.totalArea || document.getElementById('area').value}<span class="stat-unit"> m²</span></div></div>
+    </div>`;
+
+  if (bom.assumptions?.length) {
+    html += `<div class="assumptions-box">
+      <i class="ti ti-info-circle" style="font-size:15px;color:var(--c-muted);flex-shrink:0;margin-top:1px"></i>
+      <div>
+        <div style="font-family:var(--fm);font-size:10px;font-weight:500;color:var(--c-muted);letter-spacing:0.5px">ASSUMPTIONS</div>
+        <ul>${bom.assumptions.map(a => `<li>${a}</li>`).join('')}</ul>
+      </div>
+    </div>`;
+  }
+
+  bom.categories.forEach((cat, ci) => {
+    const color = cat.colorHex || CAT_COLORS[ci % CAT_COLORS.length];
+    html += `<div class="category-block">
+      <div class="cat-header" onclick="toggleCat('cat${ci}',this)">
+        <div class="cat-dot" style="background:${color}"></div>
+        <span class="cat-name">${cat.name}</span>
+        <span class="cat-count">${cat.items.length} items</span>
+        <i class="ti ti-chevron-down cat-chev open"></i>
+      </div>
+      <div id="cat${ci}">
+        <table class="mat-table">
+          <thead><tr><th>Material</th><th>Qty</th><th>+Waste</th><th>Priority</th></tr></thead>
+          <tbody>
+            ${cat.items.map(item => {
+              const withWaste = (item.quantity * (1 + (item.wastePercent||0)/100)).toFixed(1);
+              const pClass = item.priority === 'critical' ? 'p-critical' : item.priority === 'high' ? 'p-high' : 'p-standard';
+              const pLabel = item.priority === 'critical' ? 'Critical' : item.priority === 'high' ? 'High' : 'Standard';
+              return `<tr>
+                <td>
+                  <div style="font-weight:600">${item.material}</div>
+                  ${item.spec ? `<div style="font-size:11px;color:var(--c-muted);margin-top:2px">${item.spec}</div>` : ''}
+                </td>
+                <td>${Number(item.quantity).toFixed(1)} ${item.unit}<br><span style="font-size:10px;color:var(--c-muted)">${item.wastePercent||0}% waste</span></td>
+                <td style="font-weight:600">${withWaste} ${item.unit}</td>
+                <td><span class="priority-pill ${pClass}">${pLabel}</span></td>
+              </tr>
+              ${item.note ? `<tr><td colspan="4" style="padding:4px 14px 9px;border-bottom:0.5px solid var(--c-border)"><span style="font-size:11px;color:var(--c-muted)"><i class="ti ti-note" style="font-size:11px;margin-right:3px"></i>${item.note}</span></td></tr>` : ''}`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+  });
+
+  html += `<div class="legend">
+    <span><span class="dot" style="background:#FCEBEB;border:1px solid #F09595"></span> Critical — on critical path</span>
+    <span><span class="dot" style="background:#FAEEDA;border:1px solid #EF9F27"></span> High — needed before start</span>
+    <span><span class="dot" style="background:#EAF3DE;border:1px solid #97C459"></span> Standard — procure during works</span>
+  </div>`;
+
+  if (bom.leadTimeWarning || bom.procurementNotes) {
+    html += `<div class="notes-block">`;
+    if (bom.leadTimeWarning) html += `<div class="note-item"><i class="ti ti-clock-exclamation" style="color:#C0392B"></i><p><strong>Lead time warning:</strong> ${bom.leadTimeWarning}</p></div>`;
+    if (bom.procurementNotes) html += `<div class="note-item"><i class="ti ti-truck"></i><p><strong>Procurement:</strong> ${bom.procurementNotes}</p></div>`;
+    html += `</div>`;
+  }
+
+  html += `<div class="action-row">
+    <button class="act-btn" onclick="copyBOM()"><i class="ti ti-copy"></i> Copy BOM</button>
+    <button class="act-btn" onclick="printPage()"><i class="ti ti-printer"></i> Print / PDF</button>
+  </div></div>`;
+
+  document.getElementById('result-section').innerHTML = html;
+}
+
+function toggleCat(id, headerEl) {
+  const el = document.getElementById(id);
+  const chev = headerEl.querySelector('.cat-chev');
+  if (!el) return;
+  const hidden = el.style.display === 'none';
+  el.style.display = hidden ? '' : 'none';
+  if (chev) chev.classList.toggle('open', hidden);
+}
+
+function resetForm() {
+  document.getElementById('result-section').innerHTML = '';
+  window._bom = null;
+}
+
+function copyBOM() {
+  const bom = window._bom;
+  if (!bom) return;
+  let txt = bom.title + '\n' + '─'.repeat(60) + '\n\n';
+  bom.categories.forEach(cat => {
+    txt += cat.name.toUpperCase() + '\n';
+    cat.items.forEach(i => {
+      const w = (i.quantity * (1 + (i.wastePercent||0)/100)).toFixed(1);
+      txt += `  ${i.material} (${i.spec || ''})\n    Base qty: ${i.quantity.toFixed(1)} ${i.unit}  |  With waste: ${w} ${i.unit}  |  Priority: ${i.priority}\n`;
+      if (i.note) txt += `    Note: ${i.note}\n`;
+    });
+    txt += '\n';
+  });
+  if (bom.leadTimeWarning) txt += 'LEAD TIME WARNING: ' + bom.leadTimeWarning + '\n';
+  if (bom.procurementNotes) txt += 'PROCUREMENT: ' + bom.procurementNotes + '\n';
+  navigator.clipboard.writeText(txt).then(() => alert('BOM copied to clipboard!')).catch(() => alert('Copy failed. Try selecting text manually.'));
+}
+
+function printPage() { window.print(); }
+</script>
+</body>
+</html>
